@@ -36,7 +36,7 @@
 
 ## Requirements
 - Android版本 4.4+
-- Python 3.6+ (社区反馈 3.8还不支持）
+- Python 3.6+ (社区反馈3.8.0不支持, 但是3.8.2支持）
 
 >如果用python2的pip安装，会安装本库的老版本0.2.3；如果用python3.5的pip安装，会安装本库的老版本0.3.3；两者均已经不会再维护；PYPI上的最近版本是这个：https://pypi.org/project/uiautomator2/
 
@@ -111,6 +111,8 @@ Thank you to all our sponsors! ✨🍰✨
   - **[Input method](#input-method)**
   - **[Toast](#toast)**
   - **[XPath](#xpath)**
+
+**[相关文章推荐](#article-recommended)**
 
 **常见问题**
   - **[停止UiAutomator守护服务，释放AccessibilityService](#stop-uiautomator)**
@@ -1369,6 +1371,11 @@ d.service("uiautomator").stop()
 ```
 
 [ATX与Maxim共存AccessibilityService的方法](https://testerhome.com/topics/17179)
+
+# Article Recommended
+优秀文章推荐 (欢迎QQ群里at我反馈）
+
+- [termux里如何部署uiautomator2简介](https://www.cnblogs.com/ze-yan/p/12242383.html) by `成都-测试只会一点点`
 
 # 项目历史
 * 项目重构自 <https://github.com/xiaocong/uiautomator>

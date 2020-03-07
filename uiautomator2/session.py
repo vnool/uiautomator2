@@ -97,6 +97,9 @@ class Session(object):
     @cache_return
     def swipe_ext(self):
         return SwipeExt(self.server)
+    
+    def _find_element(self, xpath: str, _class=None, pos=None, activity=None, package=None):
+        raise NotImplementedError()
 
     def implicitly_wait(self, seconds=None):
         """set default wait timeout
@@ -354,13 +357,20 @@ class Session(object):
         class _Touch(object):
             def down(self, x, y):
                 obj.jsonrpc.injectInputEvent(ACTION_DOWN, x, y, 0)
+                return self
 
             def move(self, x, y):
                 obj.jsonrpc.injectInputEvent(ACTION_MOVE, x, y, 0)
+                return self
 
             def up(self, x, y):
                 """ ACTION_UP x, y """
                 obj.jsonrpc.injectInputEvent(ACTION_UP, x, y, 0)
+                return self
+            
+            def sleep(self, seconds: float):
+                time.sleep(seconds)
+                return self
 
         return _Touch()
 
@@ -456,7 +466,7 @@ class Session(object):
         return self.jsonrpc.drag(sx, sy, ex, ey, int(duration * 200))
 
     @retry((IOError, SyntaxError), delay=.5, tries=5, jitter=0.1,
-           max_delay=1)  # delay .5, .6, .7, .8 ...
+           max_delay=1, logger=logging)  # delay .5, .6, .7, .8 ...
     def screenshot(self, filename=None, format='pillow'):
         """
         Image format is JPEG
@@ -482,9 +492,12 @@ class Session(object):
                 f.write(r.content)
             return filename
         elif format == 'pillow':
-            from PIL import Image
-            buff = io.BytesIO(r.content)
-            return Image.open(buff).convert("RGB")
+            try:
+                from PIL import Image
+                buff = io.BytesIO(r.content)
+                return Image.open(buff).convert("RGB")
+            except Exception as ex:
+                raise IOError("PIL.Image.open IOError", ex)
         elif format == 'opencv':
             import cv2
             import numpy as np
@@ -598,6 +611,7 @@ class Session(object):
 
     def __getattr__(self, key):
         if key in [
+                "alibaba", # plugin
                 "app_current",
                 "app_start",
                 "app_stop",

@@ -41,9 +41,10 @@ def cache_download(url, filename=None, timeout=None, logger=logger):
     # check cache
     if not filename:
         filename = os.path.basename(url)
-    storepath = os.path.join(appdir,
-                             hashlib.sha224(url.encode()).hexdigest(),
-                             filename)
+    storepath = os.path.join(
+        appdir, "cache",
+        filename.replace(" ", "_") + "-" +
+        hashlib.sha224(url.encode()).hexdigest()[:10], filename)
     storedir = os.path.dirname(storepath)
     if not os.path.isdir(storedir):
         os.makedirs(storedir)
@@ -82,7 +83,7 @@ def cache_download(url, filename=None, timeout=None, logger=logger):
     return storepath
 
 
-def mirror_download(url: str, filename=None, logger=logger):
+def mirror_download(url: str, filename=None, logger: logging.Logger = logger):
     """
     Download from mirror, then fallback to origin url
     """
@@ -172,8 +173,12 @@ class Initer():
 
     @property
     def minicap_urls(self):
+        """
+        binary from https://github.com/openatx/stf-binaries
+        only got abi: armeabi-v7a and arm64-v8a
+        """
         base_url = GITHUB_BASEURL + \
-            "/stf-binaries/raw/master/node_modules/minicap-prebuilt/prebuilt/"
+            "/stf-binaries/raw/0.2.2/node_modules/minicap-prebuilt-beta/prebuilt/"
         sdk = self.sdk
         yield base_url + self.abi + "/lib/android-" + sdk + "/minicap.so"
         yield base_url + self.abi + "/bin/minicap"
@@ -182,10 +187,11 @@ class Initer():
     def minitouch_url(self):
         return ''.join([
             GITHUB_BASEURL + "/stf-binaries",
-            "/raw/master/node_modules/minitouch-prebuilt/prebuilt/",
+            "/raw/0.2.2/node_modules/minitouch-prebuilt-beta/prebuilt/",
             self.abi + "/bin/minitouch"
         ])
 
+    @retry(tries=2, logger=logger)
     def push_url(self, url, dest=None, mode=0o755, tgz=False, extract_name=None):  # yapf: disable
         path = mirror_download(url,
                                filename=os.path.basename(url),
@@ -193,7 +199,9 @@ class Initer():
         if tgz:
             tar = tarfile.open(path, 'r:gz')
             path = os.path.join(os.path.dirname(path), extract_name)
-            tar.extract(extract_name, os.path.dirname(path))
+            tar.extract(extract_name,
+                        os.path.dirname(path))  # zlib.error may raise
+
         if not dest:
             dest = "/data/local/tmp/" + os.path.basename(path)
 
@@ -238,8 +246,8 @@ class Initer():
         return False
 
     def is_atx_agent_outdated(self):
-        agent_version = self._device.shell(
-            self.atx_agent_path + " version").strip()
+        agent_version = self._device.shell(self.atx_agent_path +
+                                           " version").strip()
         if agent_version == "dev":
             self.logger.info("skip version check for atx-agent dev")
             return False
@@ -310,13 +318,16 @@ class Initer():
         self.shell(*args)
 
     def install(self, server_addr=None):
+        """
+        TODO: push minicap and minitouch from tgz file
+        """
         self.logger.info("Install minicap, minitouch")
         self.push_url(self.minitouch_url)
         if self.abi == "x86":
             self.logger.info(
                 "abi:x86 seems to be android emulator, skip install minicap")
-        elif int(self.sdk) >= 29:
-            self.logger.info("Android Q (sdk:29) has no minicap resource")
+        elif int(self.sdk) >= 30:
+            self.logger.info("Android R (sdk:30) has no minicap resource")
         else:
             for url in self.minicap_urls:
                 self.push_url(url)
